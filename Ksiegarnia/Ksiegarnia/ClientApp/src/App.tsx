@@ -14,17 +14,6 @@ import SearchEbooks from "./pages/SearchEbooks";
 import UserProvider from "./context/UserContext";
 import AccountSettings from "./pages/AccountSettings";
 import AccountDetails from "./features/account-settings/account-details/AccountDetails";
-import AuthorsPanel from "./features/account-settings/authors-panel/AuthorsPanel";
-import TransactionsHistory from "./features/account-settings/TransactionsHistory";
-import PremiumAccount from "./features/account-settings/premium-account/PremiumAccount";
-import EditEbook from "./features/account-settings/authors-panel/EditEbook";
-import CreateEbook from "./features/account-settings/authors-panel/CreateEbook";
-import NotificationProvider from "./context/NotificationContext";
-import Notification from "./components/Notification";
-import ProtectedRoute from "./components/ProtectedRoute";
-import Logout from "./features/account-settings/Logout";
-import OwnedEbooks from "./features/account-settings/owned-ebooks/OwnedEbooks";
-import EbookContentViewer from "./features/account-settings/owned-ebooks/EbookContentViewer";
 import BasketProvider from "./context/BasketContext";
 import Basket from "./features/transaction/Basket";
 import Contact from "./pages/Contact";
@@ -33,35 +22,56 @@ import axios from "axios";
 import Content from "./layouts/Content";
 import Navbar from "./layouts/Navbar";
 import EbookDetails from "./features/ebook-details/EBookDetails";
+import { plPL as corePlPL } from '@mui/material/locale';
+import { plPL } from '@mui/x-date-pickers/locales';
+import EbooksNotifications from "./features/account-settings/admin/EbooksNotifications";
+import UsersManagement from "./features/account-settings/admin/UsersManagement";
+import ProtectedRoute from "./components/ProtectedRoute";
+import NotificationProvider from "./context/NotificationContext";
+import TransactionsHistory from "./features/account-settings/TransactionsHistory";
+import AuthorsPanel from "./features/account-settings/normal-user/authors-panel/AuthorsPanel";
+import CreateEbook from "./features/account-settings/normal-user/authors-panel/manage-ebook/CreateEbook";
+import EditEbook from "./features/account-settings/normal-user/authors-panel/manage-ebook/EditEbook";
+import EbookContentViewer from "./features/account-settings/normal-user/owned-ebooks/EbookContentViewer";
+import OwnedEbooks from "./features/account-settings/normal-user/owned-ebooks/OwnedEbooks";
+import PremiumAccount from "./features/account-settings/normal-user/premium-account/PremiumAccount";
+import Notification from "./components/Notification";
+import Forbidden from "./pages/Forbidden";
+import Logout from "./features/account-settings/Logout";
 
 axios.defaults.withCredentials = true;
+axios.defaults.headers['Content-Type'] = "application/json"
 
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: "#0A3F5C",
-      dark: "#1470a3",
+const theme = createTheme(
+  {
+    palette: {
+      primary: {
+        main: "#0A3F5C",
+        dark: "#1470a3",
+      },
+      secondary: {
+        main: "#EB4B36",
+      },
+      info: {
+        main: "#87CEEB",
+      },
+      success: {
+        main: "#10CE00",
+      },
     },
-    secondary: {
-      main: "#EB4B36",
-    },
-    info: {
-      main: "#87CEEB",
-    },
-    success: {
-      main: "#10CE00",
+    typography: {
+      fontSize: 13,
+      fontWeightLight: 300,
+      fontWeightRegular: 400,
+      fontWeightMedium: 500,
+      button: {
+        textTransform: "none",
+      },
     },
   },
-  typography: {
-    fontSize: 13,
-    fontWeightLight: 300,
-    fontWeightRegular: 400,
-    fontWeightMedium: 500,
-    button: {
-      textTransform: "none",
-    },
-  },
-});
+  corePlPL,
+  plPL
+);
 
 const ContextProviders = (props: { children: React.ReactNode }) => {
   return (
@@ -100,10 +110,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/Ebook/:id"
-                element={<EbookDetails/>}
-              />
+              <Route path="/Ebook/:id" element={<EbookDetails />} />
               <Route path="/ebooks" element={<SearchEbooks />} />
               <Route
                 path="/account-settings"
@@ -122,6 +129,8 @@ function App() {
                 </Route>
                 <Route path="transactions" element={<TransactionsHistory />} />
                 <Route path="premium" element={<PremiumAccount />} />
+                <Route path="users-managment" element={<UsersManagement />} />
+                <Route path="ebooks-notifications" element={<EbooksNotifications />} />
                 <Route path="logout" element={<Logout />} />
               </Route>
               <Route
@@ -145,6 +154,7 @@ function App() {
               </Route>
               <Route path="contact" element={<Contact />} />
               <Route path="regulamin" element={<Regulamin />} />
+              <Route path="forbidden" element={<Forbidden />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Content>

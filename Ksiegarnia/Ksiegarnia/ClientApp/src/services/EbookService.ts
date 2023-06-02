@@ -2,6 +2,8 @@
 import EbookSearchCriteria from "../models/ebookSearchCriteria";
 import Genre from "../models/api/genre";
 import UserDTO from "../models/api/userDTO";
+import { Promotion } from "../models/api/promotion";
+import { Distinction } from "../models/api/distinction";
 
 export interface SearchEbookProps {
   ebookSearchCriteria?: EbookSearchCriteria;
@@ -76,6 +78,18 @@ class EbookService {
 
   update(ebookId: string, updateEbookProps: UpdateEbookProps) {
     return axios.put(`${this.api}/${ebookId}`, updateEbookProps);
+  }
+
+  distinct(ebookId: string, distinction: Distinction){
+    return axios.post(`${this.api}/${ebookId}/distinct`, distinction)
+  }
+
+  promote(ebookId: string, promotion: Promotion){
+    return axios.post(`${this.api}/${ebookId}/promote`, promotion)
+  }
+
+  deletePromotion(ebookId: string){
+    return axios.post(`${this.api}/${ebookId}/promote`, {})
   }
 
   delete(ebookId: string) {

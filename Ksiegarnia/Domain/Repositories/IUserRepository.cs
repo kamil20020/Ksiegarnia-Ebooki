@@ -23,13 +23,15 @@ namespace Domain.Repositories
 
         Task ChangePassword(string id, string oldPassword, string newPassword);
 
-        Task<SendTokenDto> GeneratePasswordToken(string id);
+        Task<SendTokenDto> GeneratePasswordToken(string name);
 
         Task Remove(string id);
 
         Task AddRole(string id, Roles role);
 
         Task<bool> CheckRole(string id, Roles role);
+
+        Task<IEnumerable<string>> GetRoles(string id);
 
         Task RemoveRole(string id, Roles roles);
 

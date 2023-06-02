@@ -7,9 +7,11 @@ using Infrastructure.Exceptions;
 using Infrastructure.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
 using System.Security.Claims;
+using System.Text;
 
 namespace Infrastructure.Repositories
 {
@@ -54,12 +56,12 @@ namespace Infrastructure.Repositories
         /// <summary>
         ///     Generate token for password reset
         /// </summary>
-        /// <param name="id">User id</param>
+        /// <param name="name">User email</param>
         /// <returns></returns>
-        public async Task<SendTokenDto> GeneratePasswordToken(string id)
+        public async Task<SendTokenDto> GeneratePasswordToken(string name)
         {
-            var user = await _userStore.FindByIdAsync(id, CancellationToken.None);
-            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var user = await _userStore.FindByNameAsync(name, CancellationToken.None);
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
             return new()
             {
                 Email = user.Email,
@@ -97,6 +99,13 @@ namespace Infrastructure.Repositories
         {
             var user = await _userStore.FindByIdAsync(id, CancellationToken.None);
             var result = await _userManager.ChangeEmailAsync(user, newEmail, token);
+            _ = await _userManager.SetUserNameAsync(user, newEmail);
+            _ = await _userManager.UpdateAsync(user);
+
+            if (!result.Succeeded)
+            {
+                throw new ChangeEmailFailedException(result.Errors.Select(x => x.Description));
+            }
 
             return result.Succeeded;
         }
@@ -104,14 +113,20 @@ namespace Infrastructure.Repositories
         /// <summary>
         ///     Reset Password
         /// </summary>
-        /// <param name="id">Id</param>
+        /// <param name="email">email</param>
         /// <param name="token">Token</param>
         /// <param name="newPassword">New password</param>
         /// <returns></returns>
-        public async Task ResetPassword(string id, string token, string newPassword)
+        public async Task ResetPassword(string email, string token, string newPassword)
         {
-            var user = await _userStore.FindByIdAsync(id, CancellationToken.None);
-            _ = _userManager.ResetPasswordAsync(user, token, newPassword);
+            var user = await _userStore.FindByNameAsync(email, CancellationToken.None);
+            var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+            _ = await _userManager.UpdateAsync(user);
+
+            if (!result.Succeeded)
+            {
+                throw new ChangeEmailFailedException(result.Errors.Select(x => x.Description));
+            }
         }
 
         /// <summary>
@@ -130,6 +145,7 @@ namespace Infrastructure.Repositories
             {
                 throw new ChangePasswordFailedException(changePasswordResult.Errors.Select(x => x.Description));
             }
+            await _userManager.UpdateAsync(user);
         }
 
         /// <summary>
@@ -209,29 +225,36 @@ namespace Infrastructure.Repositories
             user.BirthDate = userData.BirthDate;
             await _userStore.SetUserNameAsync(user, userData.Email, CancellationToken.None);
             await _emailStore.SetEmailAsync(user, userData.Email, CancellationToken.None);
-            var result = await _userManager.CreateAsync(user, password);
+            try
+            {
+                var result = await _userManager.CreateAsync(user, password);
 
-            if (result.Succeeded)
-            {
-                var userId = await _userManager.GetUserIdAsync(user);
-                var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                await _userManager.ConfirmEmailAsync(user, code);
-                await AddRole(user.Id, Roles.User);
-                return new()
+                if (result.Succeeded)
                 {
-                    Email = user.Email,
-                    Id = user.Id,
-                    Token = code
-                };
-            }
-            else
-            {
-                var errorstr = "";
-                foreach (var error in result.Errors)
-                {
-                    errorstr += error.Description;
+                    var userId = await _userManager.GetUserIdAsync(user);
+                    var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                    await _userManager.ConfirmEmailAsync(user, code);
+                    await AddRole(user.Id, Roles.User);
+                    return new()
+                    {
+                        Email = user.Email,
+                        Id = user.Id,
+                        Token = code
+                    };
                 }
-                throw new ExceptionBase(HttpStatusCode.BadRequest, "Register Failed", errorstr);
+                else
+                {
+                    var errorstr = "";
+                    foreach (var error in result.Errors)
+                    {
+                        errorstr += error.Description;
+                    }
+                    throw new ExceptionBase(HttpStatusCode.BadRequest, "Register Failed", errorstr);
+                }
+            }
+            catch (Exception e)
+            {
+                throw new ExceptionBase(HttpStatusCode.BadRequest, "Register Failed", e.Message);
             }
         }
 
@@ -249,7 +272,7 @@ namespace Infrastructure.Repositories
             }
         }
 
-        
+
         /// <summary>
         ///     Confirm email
         /// </summary>
@@ -390,6 +413,23 @@ namespace Infrastructure.Repositories
         public async Task<User> GetByNick(string name)
         {
             return await _userStore.FindByNameAsync(name, CancellationToken.None);
+        }
+
+        /// <summary>
+        ///     Get user roles
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public async Task<IEnumerable<string>> GetRoles(string id)
+        {
+            var user = await _userStore.FindByIdAsync(id, CancellationToken.None);
+
+            if (user != null)
+            {
+                return await _userManager.GetRolesAsync(user);
+            }
+
+            return Enumerable.Empty<string>();
         }
     }
 }

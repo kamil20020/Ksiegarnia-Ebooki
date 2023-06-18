@@ -1,17 +1,8 @@
-﻿import {
-  Grid,
-  IconButton,
-  Pagination,
-  Stack,
-  Typography,
-} from "@mui/material";
+﻿import { Grid, IconButton, Pagination, Stack, Typography } from "@mui/material";
 import { useContext, useEffect, useState } from "react";
 import Transaction from "../../models/api/transaction";
 import TransactionService from "../../services/TransactionService";
-import {
-  ArrowDropDown,
-  ArrowDropUp,
-} from "@mui/icons-material";
+import { ArrowDropDown, ArrowDropUp } from "@mui/icons-material";
 import Ebook from "../../models/api/ebook";
 import EbookService from "../../services/EbookService";
 import Image from "../../components/Image";
@@ -20,71 +11,12 @@ import { UserContext } from "../../context/UserContext";
 import Loading from "../../pages/Loading";
 import React from "react";
 import PagedResponse from "../../models/api/pagedResponse";
-
-const mockedTransactions: Transaction[] = [
-  {
-    id: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    dateTime: "2023-04-13T20:49:54.898Z",
-    books: [
-      {
-        id: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-        title: "string",
-        genre: {
-          id: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-          name: "string",
-          description: "string",
-        },
-        description: "string",
-        pageNumber: 0,
-        author: {
-          id: "string",
-          nick: "string",
-          firstName: "string",
-          lastName: "string",
-          email: "string",
-          phone: "string",
-          age: 18,
-        },
-        picture: "string",
-        prize: 0,
-      },
-    ],
-  },
-  {
-    id: "3fa85f64-5717-4562-b3fc-2c963f66afa7",
-    dateTime: "2023-04-13T20:49:54.898Z",
-    books: [
-      {
-        id: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-        title: "string",
-        genre: {
-          id: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-          name: "string",
-          description: "string",
-        },
-        description: "string",
-        pageNumber: 0,
-        author: {
-          id: "string",
-          nick: "string",
-          firstName: "string",
-          lastName: "string",
-          email: "string",
-          phone: "string",
-          age: 18,
-        },
-        picture: "string",
-        prize: 0,
-      },
-    ],
-  },
-];
+import AccountSettings from "../../pages/AccountSettings";
 
 const TransactionsHistory = () => {
   const userId = useContext(UserContext)?.user.data?.id;
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [ebooks, setEbooks] = useState<Ebook[]>([]);
 
   const pageSize = 10;
   const [page, setPage] = useState<number>(1);
@@ -100,18 +32,16 @@ const TransactionsHistory = () => {
 
   const handleSearchTransactions = () => {
     TransactionService.getUserTransactions(userId, page, pageSize)
-    .then(
-      (response) => {
+      .then((response) => {
         const data: PagedResponse = response.data;
         const newTransactions: Transaction[] = data.result;
         setTransactions(newTransactions);
         setNumberOfPages(data.number_of_pages);
         console.log(response.data);
-      }
-    )
-    .catch((error) => {
-      console.log(error)
-    })
+      })
+      .catch((error) => {
+        console.log(error);
+      });
   };
 
   const CustomPagination = () => {
@@ -130,30 +60,30 @@ const TransactionsHistory = () => {
   };
 
   return (
-    <Grid item marginTop={-2} container direction="column" rowGap={8}>
-      {transactions.length > 0 ? (
-        <React.Fragment>
-          {numberOfPages > 1 && <CustomPagination />}
-          <Grid item container direction="column" rowGap={6}>
-            {transactions.map(
-              (transaction: Transaction, index: number) => (
+    <AccountSettings title="Historia zamówień">
+      <Grid item container direction="column" rowGap={8}>
+        {transactions.length > 0 ? (
+          <React.Fragment>
+            {numberOfPages > 1 && <CustomPagination />}
+            <Grid item container direction="column" rowGap={6}>
+              {transactions.map((transaction: Transaction, index: number) => (
                 <TransactionRow
                   key={transaction.id}
                   index={(page - 1) * pageSize + (index + 1)}
                   transaction={transaction}
                   ebooks={transaction.books}
                 />
-              )
-            )}
-          </Grid>
-          {numberOfPages > 1 && <CustomPagination />}
-        </React.Fragment>
-      ) : (
-        <Typography variant="h5" textAlign="center">
-          Brak zamówień
-        </Typography>
-      )}
-    </Grid>
+              ))}
+            </Grid>
+            {numberOfPages > 1 && <CustomPagination />}
+          </React.Fragment>
+        ) : (
+          <Typography variant="h5" textAlign="center">
+            Brak zamówień
+          </Typography>
+        )}
+      </Grid>
+    </AccountSettings>
   );
 };
 
@@ -169,6 +99,8 @@ const TransactionRow = (props: {
   const transactionAmout: number = transaction.books
     .map((ebook: Ebook) => ebook.prize)
     .reduce((a: number, b: number) => a + b, 0);
+
+  console.log(transaction);
 
   return (
     <Grid item container direction="column">
@@ -198,20 +130,20 @@ const TransactionRow = (props: {
             Łączna kwota: {transactionAmout.toFixed(2)} zł,
           </Typography>
           <Typography variant="h6">
-            Data: {new Date(transaction.dateTime).toLocaleDateString()},
+            Data: {new Date(transaction.date).toLocaleDateString()},
           </Typography>
           <Typography variant="h6">
             Liczba ebooków: {transaction.books.length}
           </Typography>
         </Grid>
         <Grid item>
-        <IconButton style={{ color: "white" }}>
-          {!isOpen ? (
-            <ArrowDropDown fontSize="large" />
-          ) : (
-            <ArrowDropUp fontSize="large" />
-          )}
-        </IconButton>
+          <IconButton style={{ color: "white" }}>
+            {!isOpen ? (
+              <ArrowDropDown fontSize="large" />
+            ) : (
+              <ArrowDropUp fontSize="large" />
+            )}
+          </IconButton>
         </Grid>
       </Grid>
       {isOpen && (
@@ -243,9 +175,17 @@ const TransactionEbookView = (props: { ebook: Ebook }) => {
       justifyContent="space-between"
       borderBottom="1px solid silver"
       rowGap={4}
-    > 
+    >
       <Grid item xs={12} md={9} container columnGap={3} rowGap={3}>
-        <Grid item xs={12} md={6} lg={3} container justifyContent="center" height="260px">
+        <Grid
+          item
+          xs={12}
+          md={6}
+          lg={3}
+          container
+          justifyContent="center"
+          height="260px"
+        >
           <Image
             alt={ebook.title}
             src={ebook.picture}

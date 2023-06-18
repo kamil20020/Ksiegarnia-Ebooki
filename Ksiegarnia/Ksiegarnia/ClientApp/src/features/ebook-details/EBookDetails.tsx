@@ -18,6 +18,10 @@ import EbooksReviews from "./EbooksReviews";
 import { EbookSortOptions } from "../../models/ebookSortOptions";
 import EbookPrice from "../../components/EbookPrice";
 import EbookImage from "../../components/EbookImage";
+import ReportEbook from "./ReportEbook";
+import { Role } from "../../models/api/role";
+import DeleteEbook from "../account-settings/normal-user/authors-panel/DeleteEbook";
+import HorizontalAd from "../../components/HorizontalAd";
 
 const Data = (props: { label: string; value: string | React.ReactNode }) => {
   return (
@@ -51,10 +55,14 @@ const EbookDetails = () => {
   const ebookId = useParams().id as string;
   const [ebook, setEbook] = useState<Ebook>();
 
+  const isUserAdmin = React.useContext(UserContext)?.containsRole(Role.Admin);
   const basketContext = React.useContext(BasketContext);
   const notificationContext = useContext(NotificationContext);
 
   const FAILED_MESSAGE = "Nie znaleziono takiego ebooka";
+
+  const DELETED_SUCCESSFULY_MESSAGE = "Usunięto ebooka";
+  const DELETED_FAILED_MESSAGE = "Nie udało się usunąć ebooka";
 
   const navigate = useNavigate();
 
@@ -77,9 +85,29 @@ const EbookDetails = () => {
     return <Loading />;
   }
 
+  const handleDelete = () => {
+    EbookService.delete(ebook.id)
+      .then(() => {
+        notificationContext?.setNotification({
+          isVisible: true,
+          isSuccessful: true,
+          message: DELETED_SUCCESSFULY_MESSAGE,
+        });
+
+        navigate("../");
+      })
+      .catch(() => {
+        notificationContext?.setNotification({
+          isVisible: true,
+          isSuccessful: false,
+          message: DELETED_FAILED_MESSAGE,
+        });
+      });
+  };
+
   return (
     <CategoriesContent>
-      <Grid item container direction="column" rowGap={4} marginTop={2}>
+      <Grid item container direction="column" rowGap={6} marginTop={2}>
         <Grid item container columnGap={4} rowGap={4}>
           <Grid
             item
@@ -107,17 +135,33 @@ const EbookDetails = () => {
             direction="column"
             rowGap={2}
           >
-            <Grid item container alignItems="start" columnGap={4}>
+            <Grid
+              item
+              container
+              alignItems="start"
+              justifyContent="space-between"
+              columnGap={4}
+            >
               <Typography variant="h4" marginBottom={2}>
                 {ebook.title}
               </Typography>
+              {isUserAdmin ? (
+                <Grid item>
+                  <DeleteEbook
+                    ebookId={ebook.id}
+                    handleAccept={() => navigate("../")}
+                  />
+                </Grid>
+              ) : (
+                <ReportEbook ebookId={ebook.id} />
+              )}
             </Grid>
             <Data
               label="Autor"
               value={ebook.author.firstName + " " + ebook.author.lastName}
             />
             <Data label="Kategoria" value={ebook.genre.name} />
-            <Data label="Ocena" value={<Rate value={4.5} />} />
+            <Data label="Ocena" value={<Rate value={ebook.grade} />} />
             <Data label="Stron" value={ebook.pageNumber} />
             <Data label="Format" value={<PictureAsPdf fontSize="large" />} />
           </Grid>
@@ -132,9 +176,15 @@ const EbookDetails = () => {
             rowGap={2}
             marginBottom={2}
           >
-            <Grid item xs={12} container alignItems="end" justifyContent={{xs: "start", lg: "end"}}>
+            <Grid
+              item
+              xs={6}
+              container
+              alignItems="end"
+              justifyContent={{ xs: "start", lg: "end" }}
+            >
               <Typography variant="h4">
-                <EbookPrice price={ebook.prize} promotion={ebook.promotion} />
+                <EbookPrice authorId={ebook.author.id} price={ebook.prize} promotion={ebook.promotion} />
               </Typography>
             </Grid>
             {basketContext?.doShouldShowAddToBasket(ebook) && (
@@ -148,10 +198,10 @@ const EbookDetails = () => {
           </Grid>
         </Grid>
         <BigData label="Opis" value={ebook.description} />
-        <BigData label="Oceny" value={<EbookGrades />} />
         <EbooksReviews ebook={ebook} />
         <EbooksSlider title="Polecane" sort={EbookSortOptions.BestSeller} />
       </Grid>
+      <HorizontalAd/>
     </CategoriesContent>
   );
 };

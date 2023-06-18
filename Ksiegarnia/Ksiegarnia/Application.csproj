@@ -12,6 +12,7 @@
     <SpaProxyLaunchCommand>npm start</SpaProxyLaunchCommand>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <UserSecretsId>c7430711-41b9-4254-9e64-3d03d4e5d851</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,6 +22,10 @@
     <PackageReference Include="Microsoft.AspNetCore.SpaProxy" Version="6.0.13" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.14" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.14">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.TypeScript.MSBuild" Version="5.1.3">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

@@ -48,6 +48,7 @@ namespace Application.Controllers
         /// <param name="year">publication year</param>
         /// <param name="maxPrize">Max Prize</param>
         /// <param name="minPrize">Min prize</param>
+        /// <param name="onlyVerified">show only verified</param>
         /// <param name="sort">Sorting order</param>
         /// <param name="page">Page</param>
         /// <returns>List of books</returns>
@@ -61,6 +62,7 @@ namespace Application.Controllers
                                                 [FromQuery] bool onlyOnPromotion = false,
                                                 [FromQuery] decimal? maxPrize = 0,
                                                 [FromQuery] decimal? minPrize = 0,
+                                                [FromQuery] VerificationType? verificationType = null,
                                                 [FromQuery] int page = 1)
         {
             var books = await _bookRepository.GetEBooks(genre?.ToList() ?? null, year?.ToList() ?? null, authorName ?? string.Empty);
@@ -72,6 +74,11 @@ namespace Application.Controllers
             if (minPrize > 0)
             {
                 books = books.Where(x => x.Prize >= minPrize).ToList();
+            }
+
+            if (verificationType != null)
+            {
+                books = books.Where(x => x.Verification == verificationType).ToList();
             }
 
             if (!string.IsNullOrEmpty(phrase))
@@ -177,7 +184,7 @@ namespace Application.Controllers
                 throw new UserNotFoundException(string.Empty);
             }
 
-            if (book.Author != user || user.Publications?.Count(x => x.Distinction != null) > ConfigurationConst.FreeTimeDistinct)
+            if (book.Author != user || user.Distinctions <= 0)
             {
                 if (!(await _userRepository.CheckRole(user?.Id ?? "", Roles.PremiumUser) || await _userRepository.CheckRole(user?.Id ?? "", Roles.Admin)))
                 {
@@ -201,6 +208,8 @@ namespace Application.Controllers
             };
 
             await _bookRepository.AddDistinction(book.Distinction);
+
+            book.Author.Distinctions--;
 
             await _bookRepository.SaveChanges();
 
@@ -278,7 +287,8 @@ namespace Application.Controllers
             {
                 StartDate = promotion.StartDate ?? default,
                 EndDate = promotion.EndDate ?? default,
-                Prize = promotion.Prize
+                Prize = promotion.Prize,
+                OnlyForPremium = promotion.IsPremiumOnly
             };
 
             await _bookRepository.AddPromotion(book.Promotion);
@@ -302,11 +312,6 @@ namespace Application.Controllers
             if (ebook == null)
             {
                 throw new BookNotFoundException(id.ToString() ?? String.Empty);
-            }
-
-            if (ebook.Verification != VerificationType.Accepted)
-            {
-                throw new BookNotVerifiedException();
             }
 
             return ebook.ToDTO();
@@ -420,6 +425,7 @@ namespace Application.Controllers
                 if (eBook.Content != null)
                 {
                     book.Content = Convert.FromBase64String(eBook.Content);
+                    book.Verification = VerificationType.Verifing;
                 }
 
                 if (eBook.Description != null)
@@ -486,29 +492,10 @@ namespace Application.Controllers
             throw new BookNotFoundException(id);
         }
 
-        /// <summary>
-        ///     Verify book
-        /// </summary>
-        /// <param name="id">Book id</param>
-        /// <param name="verifyName">Verification Data (name)</param>
-        /// <returns></returns>
-        [HttpGet("/{id}/verify")]
-        public async Task<HttpStatusCode> Verify(Guid id, [FromQuery] string verifyName)
-        {
-            await _bookRepository.Verify(id, verifyName);
-            await _bookRepository.SaveChanges();
-            return HttpStatusCode.OK;
-        }
 
         private int CountFreeDistinctions(User? user)
         {
-            switch (user?.Premium?.DaysToFinishPremium)
-            {
-                case 30: return 1;
-                case 60: return 2;
-                case 90: return 3;
-                default: return 0;
-            }
+            return user?.Premium?.DaysToFinishPremium / 30 ?? 0 + user.Distinctions;
         }
     }
 }

@@ -13,7 +13,7 @@ import Loading from "../../../../pages/Loading";
 import PagedResponse from "../../../../models/api/pagedResponse";
 
 const AuthorsEbooks = () => {
-  const userContext = useContext(UserContext)
+  const userContext = useContext(UserContext);
   const userId = userContext?.user.data?.id;
 
   const [searchPhrase, setSearchPhrase] = useState<string>("");
@@ -21,7 +21,7 @@ const AuthorsEbooks = () => {
 
   const page = useRef<number>(1);
   const numberOfPages = useRef<number>(0);
-  const [numberOfEbooks, setNumberOfEbooks] = useState<number>(0)
+  const [numberOfEbooks, setNumberOfEbooks] = useState<number>(0);
 
   const [pageSize, setPageSize] = useState<number>(12);
   const actualPageSize = useRef<number>(12);
@@ -60,9 +60,25 @@ const AuthorsEbooks = () => {
       const newEbooks: Ebook[] = data.result;
       setEbooks((ebooks: Ebook[]) => [...ebooks, ...newEbooks]);
       numberOfPages.current = data.number_of_pages;
-      setNumberOfEbooks(data.all)
+      setNumberOfEbooks(data.all);
     });
   };
+
+  const handleUpdate = () => {
+    UserService.getPublishedEbooks({
+      userId: userId,
+      authorId: userId,
+      phrase: searchPhrase,
+      page: page.current,
+      pageSize: actualPageSize.current,
+    }).then((response) => {
+      const data: PagedResponse = response.data;
+      const newEbooks: Ebook[] = data.result;
+      setEbooks(newEbooks);
+      numberOfPages.current = data.number_of_pages;
+      setNumberOfEbooks(data.all);
+    });
+  }
 
   const handleSearch = () => {
     page.current = 1;
@@ -77,8 +93,8 @@ const AuthorsEbooks = () => {
       const newEbooks: Ebook[] = data.result;
       setEbooks(newEbooks);
       numberOfPages.current = data.number_of_pages;
-      setNumberOfEbooks(data.all)
-      console.log(newEbooks)
+      setNumberOfEbooks(data.all);
+      userContext.setNumberOfAddedEbooks(data.all)
     });
   };
 
@@ -92,7 +108,7 @@ const AuthorsEbooks = () => {
   const handleSetSort = (newSort: string) => {
     actualSort.current = newSort;
     setSort(newSort);
-    };
+  };
 
   return (
     <Grid item container rowGap={5}>
@@ -115,17 +131,19 @@ const AuthorsEbooks = () => {
             }}
           />
         </Grid>
-        <Button
-          variant="contained"
-          style={{
-            padding: "8px 24px",
-            borderRadius: "12px",
-            alignSelf: "center",
-          }}
-          onClick={() => navigate("/ebook/create")}
-        >
-          Dodaj ebooka
-        </Button>
+        {userContext.user.numberOfAddedEbooks < 10 && (
+          <Button
+            variant="contained"
+            style={{
+              padding: "8px 24px",
+              borderRadius: "12px",
+              alignSelf: "center",
+            }}
+            onClick={() => navigate("/ebook/create")}
+          >
+            Dodaj ebooka
+          </Button>
+        )}
       </Grid>
       <Grid item container justifyContent="space-between" rowGap={4}>
         <Grid item xs={12} lg={5} xl={4}>
@@ -143,7 +161,7 @@ const AuthorsEbooks = () => {
       </Grid>
       <Grid item container rowGap={6} marginTop={2}>
         {ebooks.map((ebook: Ebook) => (
-          <AuthorsEbook key={ebook.id} ebook={ebook} update={handleSearch} />
+          <AuthorsEbook key={ebook.id} ebook={ebook} update={handleUpdate} />
         ))}
       </Grid>
     </Grid>

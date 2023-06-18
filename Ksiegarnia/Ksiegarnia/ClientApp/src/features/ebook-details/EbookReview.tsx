@@ -11,13 +11,16 @@ import Ebook from "../../models/api/ebook";
 import ReviewService from "../../services/ReviewService";
 import { NotificationContext } from "../../context/NotificationContext";
 import { Review } from "../../models/api/review";
+import { Role } from "../../models/api/role";
 
 const EbookReview = (props: {
   ebook: Ebook;
   review: Review;
   handleUpdate: () => void;
 }) => {
-  const userId = useContext(UserContext)?.user.data?.id;
+  const userContext = useContext(UserContext);
+  const userId = userContext?.user.data?.id;
+  const isUserAdmin = userContext?.containsRole(Role.Admin);
 
   const notificationContext = useContext(NotificationContext);
 
@@ -48,24 +51,24 @@ const EbookReview = (props: {
   };
 
   const handleDelete = () => {
-    ReviewService.delete("1")
-    .then((response) => {
-    console.log(response);
-    notificationContext?.setNotification({
-        isVisible: true,
-        isSuccessful: true,
-        message: SUCCESSFULLY_DELETED_MESSAGE,
-    });
-    props.handleUpdate();
-    })
-    .catch((error) => {
-    console.log(error);
-    notificationContext?.setNotification({
-        isVisible: true,
-        isSuccessful: false,
-        message: FAILED_DELETED_MESSAGE,
-    });
-    });
+    ReviewService.delete(review.id)
+      .then((response) => {
+        console.log(response);
+        notificationContext?.setNotification({
+          isVisible: true,
+          isSuccessful: true,
+          message: SUCCESSFULLY_DELETED_MESSAGE,
+        });
+        props.handleUpdate();
+      })
+      .catch((error) => {
+        console.log(error);
+        notificationContext?.setNotification({
+          isVisible: true,
+          isSuccessful: false,
+          message: FAILED_DELETED_MESSAGE,
+        });
+      });
 
     setOpenDeleteDialog(false);
     handleCloseReviewOptions();
@@ -77,8 +80,8 @@ const EbookReview = (props: {
         <Typography variant="h6" fontWeight="bold">
           {review.reviewer.nick}
         </Typography>
-        <Typography variant="h6">{review.date}</Typography>
-        {userId === review.reviewer.id && (
+        <Typography variant="h6">{new Date(review.date).toLocaleDateString()}</Typography>
+        {(isUserAdmin || userId === review.reviewer.id) && (
           <React.Fragment>
             <IconButton
               style={{ marginTop: -3 }}

@@ -260,6 +260,9 @@ const CreateEbook = () => {
             settings={{
               multiline: true,
               rows: 20,
+              inputProps: {
+                maxLength: 1020
+              },
             }}
             isRequired={true}
             errorMessage={errors.description}

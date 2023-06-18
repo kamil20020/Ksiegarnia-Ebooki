@@ -178,6 +178,43 @@ namespace Domain.Migrations
                     b.ToTable("HideInfo");
                 });
 
+            modelBuilder.Entity("Domain.Entitites.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreationDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ObjectId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StatusChangeDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
+                });
+
             modelBuilder.Entity("Domain.Entitites.Premium", b =>
                 {
                     b.Property<Guid>("Id")
@@ -326,6 +363,9 @@ namespace Domain.Migrations
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Distinctions")
+                        .HasColumnType("int");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -559,6 +599,15 @@ namespace Domain.Migrations
                     b.Navigation("EBook");
 
                     b.Navigation("Transaction");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Domain.Entitites.Notification", b =>
+                {
+                    b.HasOne("Domain.Entitites.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId");
 
                     b.Navigation("User");
                 });

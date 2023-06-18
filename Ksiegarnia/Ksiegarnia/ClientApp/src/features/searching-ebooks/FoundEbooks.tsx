@@ -9,6 +9,7 @@ import SelectPageSize from "../../components/SelectPageSize";
 import { useSearchParams } from "react-router-dom";
 import { EbookSearchCategories } from "../../models/ebookSearchCategories";
 import { EbookSortOptions } from "../../models/ebookSortOptions";
+import { EbookAcceptance } from "../../models/api/ebookAcceptance";
 
 const FoundEbooks = () => {
   const [ebooks, setEbooks] = useState<Ebook[]>([]);
@@ -37,7 +38,8 @@ const FoundEbooks = () => {
         phrase: phraseFromParams ? phraseFromParams : undefined,
         genre: genreFromParams ? genreFromParams : undefined,
         minPrize: minPriceFromParams ? (minPriceFromParams as unknown as number) : undefined,
-        maxPrize: maxPriceFromParams ? (maxPriceFromParams as unknown as number) : undefined
+        maxPrize: maxPriceFromParams ? (maxPriceFromParams as unknown as number) : undefined,
+        verificationType: EbookAcceptance.Accepted
       }
     }
 

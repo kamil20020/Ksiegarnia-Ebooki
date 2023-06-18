@@ -9,6 +9,8 @@ import PremiumService from "../../../../services/PremiumService";
 import BuyPremiumDialog from "./BuyPremiumDialog";
 import PremiumAccountOrder from "./PremiumAccountOrder";
 import React from "react";
+import AccountSettings from "../../../../pages/AccountSettings";
+import { NotificationContext } from "../../../../context/NotificationContext";
 
 const StatisticData = (props: { title: string; value: React.ReactNode }) => {
   return (
@@ -27,30 +29,6 @@ const StatisticData = (props: { title: string; value: React.ReactNode }) => {
   );
 };
 
-const premiumHistories: PremiumHistory[] = [
-  {
-    id: "1",
-    type: 1,
-    fromDate: new Date().toLocaleDateString(),
-    toDate: new Date().toLocaleDateString(),
-    prize: 50,
-  },
-  {
-    id: "2",
-    type: 3,
-    fromDate: new Date().toLocaleDateString(),
-    toDate: new Date().toLocaleDateString(),
-    prize: 100,
-  },
-  {
-    id: "3",
-    type: 6,
-    fromDate: new Date().toLocaleDateString(),
-    toDate: new Date().toLocaleDateString(),
-    prize: 150,
-  },
-];
-
 interface PremiumInfoProps {
   isActive: boolean;
   userId: string;
@@ -66,7 +44,12 @@ const PremiumAccount = () => {
   const [isVisibleBuyPremiumDialog, setIsVisibleBuyPremiumDialog] =
     useState<boolean>(false);
 
-  const handleCheckPremium = () => {
+  const notificationContext = React.useContext(NotificationContext);
+
+  const NOT_SUBMITED_TRANSACTION = "Nie udało się złożyć zamówienia";
+  const SUCCESSFULY_SUBMITED_TRANSACTION = "Udało się złożyć zamówienie";
+
+  useEffect(() => {
     PremiumService.checkPremium(userId as string).then((response) => {
       const premiumInfoData: PremiumCheck = response.data;
 
@@ -89,17 +72,13 @@ const PremiumAccount = () => {
         endDate: endDate,
       });
     });
-  };
-
-  useEffect(() => {
-    handleCheckPremium();
   }, []);
 
   if (!userId || !premiumInfo) {
     return <Loading />;
   }
 
-  const handleBuyPremium = (numberOfDays: number) => {
+  const handleBuyPremium = (numberOfDays: number, price: number) => {
     const newBuyDate = new Date();
     const newEndDate = premiumInfo.endDate
       ? premiumInfo.endDate
@@ -111,8 +90,20 @@ const PremiumAccount = () => {
       userId: userId,
       buyDate: newBuyDate.toISOString(),
       days: numberOfDays,
+      prize: price,
     })
       .then((response) => {
+        const paypalRedirect: string = response.data;
+        console.log(paypalRedirect);
+
+        notificationContext?.setNotification({
+          isVisible: true,
+          isSuccessful: true,
+          message: SUCCESSFULY_SUBMITED_TRANSACTION,
+        });
+
+        window.location.href = paypalRedirect;
+
         console.log(response);
         setPremiumInfo({
           ...premiumInfo,
@@ -145,89 +136,91 @@ const PremiumAccount = () => {
   };
 
   return (
-    <Grid item marginTop={-4} container direction="column" rowGap={8}>
-      <Grid item container direction="column" rowGap={2}>
-        <Grid item container columnGap={2} rowGap={1}>
-          <StatisticData
-            title="Status premium"
-            value={
-              premiumInfo?.isActive ? (
-                <Typography variant="h6" style={{ color: "#24FF00" }}>
-                  Aktywny
+    <AccountSettings title="Konto premium">
+      <Grid item marginTop={-4} container direction="column" rowGap={8}>
+        <Grid item container direction="column" rowGap={2}>
+          <Grid item container columnGap={2} rowGap={1}>
+            <StatisticData
+              title="Status premium"
+              value={
+                premiumInfo?.isActive ? (
+                  <Typography variant="h6" style={{ color: "#24FF00" }}>
+                    Aktywny
+                  </Typography>
+                ) : (
+                  <Typography variant="h6" style={{ color: "#EB4B36" }}>
+                    Nieaktywny
+                  </Typography>
+                )
+              }
+            />
+            {premiumInfo?.isActive ? (
+              <Button
+                className="premium-button button-rounded"
+                variant="contained"
+                onClick={() => setIsVisibleBuyPremiumDialog(true)}
+              >
+                Przedłuż
+              </Button>
+            ) : (
+              <Button
+                className="premium-button button-rounded"
+                variant="contained"
+                onClick={() => setIsVisibleBuyPremiumDialog(true)}
+              >
+                Zakup
+              </Button>
+            )}
+          </Grid>
+          <Grid item container>
+            <StatisticData
+              title="Wygasa dnia"
+              value={
+                <Typography variant="h6">
+                  {premiumInfo.isActive
+                    ? premiumInfo.endDate!.toLocaleDateString()
+                    : ""}
                 </Typography>
-              ) : (
-                <Typography variant="h6" style={{ color: "#EB4B36" }}>
-                  Nieaktywny
+              }
+            />
+          </Grid>
+          <Grid item container>
+            <StatisticData
+              title="Ostatni zakup"
+              value={
+                <Typography variant="h6">
+                  {premiumInfo.isActive
+                    ? premiumInfo.buyDate!.toLocaleDateString()
+                    : ""}
                 </Typography>
-              )
-            }
-          />
-          {premiumInfo?.isActive ? (
-            <Button
-              className="premium-button button-rounded"
-              variant="contained"
-              onClick={() => setIsVisibleBuyPremiumDialog(true)}
-            >
-              Przedłuż
-            </Button>
-          ) : (
-            <Button
-              className="premium-button button-rounded"
-              variant="contained"
-              onClick={() => setIsVisibleBuyPremiumDialog(true)}
-            >
-              Zakup
-            </Button>
-          )}
+              }
+            />
+          </Grid>
         </Grid>
-        <Grid item container>
-          <StatisticData
-            title="Wygasa dnia"
-            value={
-              <Typography variant="h6">
-                {premiumInfo.isActive
-                  ? premiumInfo.endDate!.toLocaleDateString()
-                  : ""}
-              </Typography>
-            }
-          />
+        <Grid item container justifyContent="center">
+          <Grid
+            item
+            xs={12}
+            lg={10}
+            container
+            justifyContent="space-between"
+            rowGap={2}
+          >
+            <BenefitInfo benefit="Zniżki na książki" />
+            <BenefitInfo benefit="Nielimitowana liczba dodanych ebooków" />
+            <BenefitInfo benefit="Darmowe wyróżnienia ebooka" />
+            <BenefitInfo benefit="Nieograniczona pojemność na ebooka" />
+          </Grid>
         </Grid>
-        <Grid item container>
-          <StatisticData
-            title="Ostatni zakup"
-            value={
-              <Typography variant="h6">
-                {premiumInfo.isActive
-                  ? premiumInfo.buyDate!.toLocaleDateString()
-                  : ""}
-              </Typography>
-            }
-          />
-        </Grid>
+        <BuyPremiumDialog
+          open={isVisibleBuyPremiumDialog}
+          handleAccept={handleBuyPremium}
+          handleDecline={() => {
+            setIsVisibleBuyPremiumDialog(false);
+          }}
+        />
       </Grid>
-      <Grid item container justifyContent="center">
-        <Grid
-          item
-          xs={12}
-          lg={10}
-          container
-          justifyContent="space-between"
-          rowGap={2}
-        >
-          <BenefitInfo benefit="Zniżki na książki" />
-          <BenefitInfo benefit="Nielimitowana liczba dodanych ebooków" />
-          <BenefitInfo benefit="Darmowe wyróżnienia ebooka" />
-          <BenefitInfo benefit="Nieograniczona pojemność na ebooka" />
-        </Grid>
-      </Grid>
-      <BuyPremiumDialog
-        open={isVisibleBuyPremiumDialog}
-        handleAccept={handleBuyPremium}
-        handleDecline={() => {
-          setIsVisibleBuyPremiumDialog(false);
-        }}
-      />
-    </Grid>
+    </AccountSettings>
   );
 };
 

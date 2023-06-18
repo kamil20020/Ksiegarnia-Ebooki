@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Domain.Migrations
 {
     [DbContext(typeof(KsiegarniaContext))]
-    [Migration("20230528135258_init")]
-    partial class init
+    [Migration("20230610183615_dodanie_distinction")]
+    partial class dodanie_distinction
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -66,8 +66,8 @@ namespace Domain.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .HasMaxLength(1020)
+                        .HasColumnType("nvarchar(1020)");
 
                     b.Property<Guid>("GenreId")
                         .HasColumnType("uniqueidentifier");
@@ -178,6 +178,43 @@ namespace Domain.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("HideInfo");
+                });
+
+            modelBuilder.Entity("Domain.Entitites.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreationDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ObjectId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StatusChangeDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("Domain.Entitites.Premium", b =>
@@ -328,6 +365,9 @@ namespace Domain.Migrations
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Distinctions")
+                        .HasColumnType("int");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -517,8 +557,7 @@ namespace Domain.Migrations
                     b.HasOne("Domain.Entitites.EBook", "Book")
                         .WithOne("Distinction")
                         .HasForeignKey("Domain.Entitites.Distinction", "BookId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Book");
                 });
@@ -566,13 +605,21 @@ namespace Domain.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Domain.Entitites.Notification", b =>
+                {
+                    b.HasOne("Domain.Entitites.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Domain.Entitites.Promotion", b =>
                 {
                     b.HasOne("Domain.Entitites.EBook", "Book")
                         .WithOne("Promotion")
                         .HasForeignKey("Domain.Entitites.Promotion", "BookId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Book");
                 });

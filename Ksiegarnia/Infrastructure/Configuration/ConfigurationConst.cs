@@ -31,9 +31,19 @@ namespace Infrastructure
         public static int FreeTimeDistinct { get; set; }
 
         /// <summary>
+        ///     Prize for distinction
+        /// </summary>
+        public static decimal PrizeForDistinct { get; set; }
+
+        /// <summary>
         ///     Number of free books to add
         /// </summary>
         public static int FreeStorage { get; set; }
+
+        /// <summary>
+        ///     Premium prize
+        /// </summary>
+        public static decimal PrizeForPremium { get; set; }
 
         public static void ConfigureConst(this WebApplicationBuilder builder)
         {
@@ -42,6 +52,7 @@ namespace Infrastructure
             Paypal = builder.Configuration.GetSection("Paypal").Get<PaypalStruct>();
             FreeStorage = builder.Configuration.GetValue<int>("FreeStorage");
             FreeTimeDistinct = builder.Configuration.GetValue<int>("FreeTimeDistinct");
+            PrizeForDistinct = builder.Configuration.GetValue<decimal>("PrizeForDistinct");
         }
     }
 }

@@ -236,7 +236,7 @@ namespace Application.Controllers
         {
             if (DateTime.UtcNow.Year - data.BirthDate.Year < 18)
             {
-                throw new ExceptionBase();
+                throw new ExceptionBase(HttpStatusCode.BadRequest, "Too young.");
             }
 
             try
@@ -244,7 +244,7 @@ namespace Application.Controllers
                 var user = await _userRepository.Register(data, data.Password ?? String.Empty);
                 var token = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(user.Token));
                 var callbackUrl = Url.Action("EmailConfirm", "Users", new { id = user.Id, token = token }, HttpContext.Request.Scheme, HttpContext.Request.Host.Value);
-                
+
                 if (!_environment.IsDevelopment())
                 {
                     _authService.SendEmail($"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl ?? string.Empty)}'>clicking here</a>.", user.Email);
@@ -299,6 +299,25 @@ namespace Application.Controllers
         }
 
         /// <summary>
+        ///     Get user distinction
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("Distinction")]
+        public async Task<object?> GetDistinction()
+        {
+            var user = await _userRepository.GetByNick(User?.Identity?.Name ?? string.Empty);
+
+            if (user != null)
+            {
+                var distinctions = user.Publications?.Where(x => x.Distinction != null && x.Distinction.StartDate.AddDays(x.Distinction.HowLong) < DateTime.Now).ToDTOs();
+
+                return new { Distinctions = distinctions, UsedDistinctions = distinctions.Count(), ownedDistinction = user.Distinctions };
+            }
+
+            return null;
+        }
+
+        /// <summary>
         ///     Get current user
         /// </summary>
         /// <returns></returns>
@@ -330,7 +349,7 @@ namespace Application.Controllers
                 throw new LoginFailedException();
             }
 
-            return user.ToDTO();
+            return user.ToDTO(await _userRepository.GetRoles(user.Id));
         }
 
 
@@ -356,7 +375,7 @@ namespace Application.Controllers
         [HttpPost("CheckPassword")]
         public async Task<HttpStatusCode> CheckPassword([FromQuery] string id, [FromBody] string password)
         {
-            if ( await _userRepository.CheckPassword(password, id))
+            if (await _userRepository.CheckPassword(password, id))
             {
                 return HttpStatusCode.OK;
             }

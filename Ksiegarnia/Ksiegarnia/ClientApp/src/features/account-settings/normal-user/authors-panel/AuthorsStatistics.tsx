@@ -3,6 +3,9 @@ import Statistics from "../../../../models/api/statistics";
 import React from "react";
 import TransactionService from "../../../../services/TransactionService";
 import { UserContext } from "../../../../context/UserContext";
+import axios from "axios";
+import UserService from "../../../../services/UserService";
+import Loading from "../../../../pages/Loading";
 
 const StatisticData = (props: { title: string; value: string }) => {
   return (
@@ -27,6 +30,7 @@ interface UserTransactionsStats {
   numberOfSoldEbooks: number;
   earnedCash: number;
   earnedCashPerEbook: number;
+  numberOfAddedEbooks: number;
 }
 
 const AuthorsStatistics = () => {
@@ -37,22 +41,37 @@ const AuthorsStatistics = () => {
     numberOfSoldEbooks: 0,
     earnedCash: 0,
     earnedCashPerEbook: 0,
+    numberOfAddedEbooks: 0,
   });
 
   React.useEffect(() => {
-    TransactionService.getUserStats(userId as string).then((response) => {
-      const rawStatistics: Statistics = response.data;
-      const numberOfSoldEbooks = rawStatistics.selled_book.all;
-      setStats({
-        numberOfSoldEbooks: numberOfSoldEbooks,
-        earnedCash: rawStatistics.earned_cash,
-        earnedCashPerEbook:
-          numberOfSoldEbooks == 0
-            ? numberOfSoldEbooks
-            : rawStatistics.earned_cash / numberOfSoldEbooks,
+    axios
+      .all([
+        TransactionService.getUserStats(userId as string),
+        UserService.getUserNumberOfDistinctions(),
+      ])
+      .then((responses) => {
+        const rawStatistics: Statistics = responses[0].data;
+        const numberOfDistinctions = responses[1].data.ownedDistinction;
+        const numberOfSoldEbooks = rawStatistics.selled_book.all;
+        setStats({
+          numberOfSoldEbooks: numberOfSoldEbooks,
+          earnedCash: rawStatistics.earned_cash,
+          earnedCashPerEbook:
+            numberOfSoldEbooks == 0
+              ? numberOfSoldEbooks
+              : rawStatistics.earned_cash / numberOfSoldEbooks,
+          numberOfAddedEbooks: userContext
+            ? userContext.user.numberOfAddedEbooks
+            : 0,
+        });
+        userContext?.setNumberOfDistinctions(numberOfDistinctions);
       });
-    });
   }, []);
+
+  if (!userContext) {
+    return <Loading />;
+  }
 
   return (
     <Grid item container direction="column" rowGap={6}>
@@ -71,28 +90,28 @@ const AuthorsStatistics = () => {
         >
           <StatisticData
             title="Liczba odbiorców"
-            value={stats?.numberOfSoldEbooks.toString()}
+            value={stats.numberOfSoldEbooks.toString()}
           />
           <StatisticData
             title="Łączny przychód z książek:"
-            value={stats?.earnedCash.toString() + " zł"}
+            value={stats.earnedCash.toString() + " zł"}
           />
           <StatisticData
             title="Średni przychód na książkę:"
-            value={stats?.earnedCashPerEbook.toString() + " zł"}
+            value={stats.earnedCashPerEbook.toString() + " zł"}
           />
-          {!userContext?.user.isPremium && (
+          {!userContext.user.isPremium && (
             <StatisticData
               title="Pozostało książek do dodania:"
-              value={(userContext?.user.numberOfAddedEbooks as number < 10
-                ? 10 - (userContext?.user.numberOfAddedEbooks as number)
+              value={((userContext.user.numberOfAddedEbooks as number) < 10
+                ? 10 - (userContext.user.numberOfAddedEbooks as number)
                 : 0
               ).toString()}
             />
           )}
           <StatisticData
             title="Pozostało darmowych wyróżnień:"
-            value={(5).toString()}
+            value={userContext.user.numberOfDistinctions.toString()}
           />
         </Grid>
       </Grid>

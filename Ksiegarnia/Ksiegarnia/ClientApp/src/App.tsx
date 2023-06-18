@@ -22,9 +22,10 @@ import axios from "axios";
 import Content from "./layouts/Content";
 import Navbar from "./layouts/Navbar";
 import EbookDetails from "./features/ebook-details/EBookDetails";
-import { plPL as corePlPL } from '@mui/material/locale';
-import { plPL } from '@mui/x-date-pickers/locales';
-import EbooksNotifications from "./features/account-settings/admin/EbooksNotifications";
+import { plPL as corePlPL } from "@mui/material/locale";
+import { plPL } from "@mui/x-date-pickers/locales";
+import { plPL as dataGridPlPL } from "@mui/x-data-grid";
+import Notifications from "./features/account-settings/admin/Notifications";
 import UsersManagement from "./features/account-settings/admin/UsersManagement";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotificationProvider from "./context/NotificationContext";
@@ -38,9 +39,15 @@ import PremiumAccount from "./features/account-settings/normal-user/premium-acco
 import Notification from "./components/Notification";
 import Forbidden from "./pages/Forbidden";
 import Logout from "./features/account-settings/Logout";
+import UserManagement from "./features/account-settings/admin/UserManagement";
+import NotificationView from "./features/account-settings/admin/NotificationView";
+import TransactionMessage from "./features/transaction/TransactionMessage";
+import EbooksVerifications from "./features/account-settings/admin/EbooksVerification";
+import EbookVerification from "./features/account-settings/admin/EbookVerification";
+import PremiumTransactionMessage from "./features/transaction/PremiumTransactionMessage";
 
 axios.defaults.withCredentials = true;
-axios.defaults.headers['Content-Type'] = "application/json"
+axios.defaults.headers["Content-Type"] = "application/json";
 
 const theme = createTheme(
   {
@@ -70,16 +77,17 @@ const theme = createTheme(
     },
   },
   corePlPL,
-  plPL
+  plPL,
+  dataGridPlPL
 );
 
 const ContextProviders = (props: { children: React.ReactNode }) => {
   return (
-    <NotificationProvider>
-      <UserProvider>
+    <UserProvider>
+      <NotificationProvider>
         <BasketProvider>{props.children}</BasketProvider>
-      </UserProvider>
-    </NotificationProvider>
+      </NotificationProvider>
+    </UserProvider>
   );
 };
 
@@ -116,7 +124,7 @@ function App() {
                 path="/account-settings"
                 element={
                   <ProtectedRoute requiresLogged={true}>
-                    <AccountSettings />
+                    <Outlet />
                   </ProtectedRoute>
                 }
               >
@@ -125,12 +133,50 @@ function App() {
                 <Route path="authors-panel" element={<AuthorsPanel />} />
                 <Route path="owned-ebooks" element={<Outlet />}>
                   <Route index element={<OwnedEbooks />} />
-                  <Route path=":id" element={<EbookContentViewer />} />
+                  <Route path=":ebookId" element={<EbookContentViewer />} />
                 </Route>
                 <Route path="transactions" element={<TransactionsHistory />} />
                 <Route path="premium" element={<PremiumAccount />} />
-                <Route path="users-managment" element={<UsersManagement />} />
-                <Route path="ebooks-notifications" element={<EbooksNotifications />} />
+                <Route
+                  path="users-managment"
+                  element={
+                    <ProtectedRoute requiresLogged={true} requiresAdmin={true}>
+                      <Outlet />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<UsersManagement />} />
+                  <Route path=":userId" element={<UserManagement />} />
+                </Route>
+                <Route
+                  path="notifications"
+                  element={
+                    <ProtectedRoute requiresLogged={true} requiresAdmin={true}>
+                      <Outlet />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<Notifications />} />
+                  <Route
+                    path=":notificationId"
+                    element={<NotificationView />}
+                  />
+                </Route>
+                <Route
+                  path="ebooks-verification"
+                  element={
+                    <ProtectedRoute requiresLogged={true} requiresAdmin={true}>
+                      <Outlet />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<EbooksVerifications />} />
+                  <Route path=":ebookId" element={<EbookVerification />} />
+                  <Route
+                    path=":ebookId/content"
+                    element={<EbookContentViewer />}
+                  />
+                </Route>
                 <Route path="logout" element={<Logout />} />
               </Route>
               <Route
@@ -152,6 +198,22 @@ function App() {
               <Route path="/transaction" element={<Outlet />}>
                 <Route index element={<Basket />} />
               </Route>
+              <Route
+                path="Transactions/Finish/:transactionId"
+                element={
+                  <ProtectedRoute requiresLogged={true}>
+                    <TransactionMessage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="Premium/Finish/:transactionId"
+                element={
+                  <ProtectedRoute requiresLogged={true}>
+                    <PremiumTransactionMessage />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="contact" element={<Contact />} />
               <Route path="regulamin" element={<Regulamin />} />
               <Route path="forbidden" element={<Forbidden />} />

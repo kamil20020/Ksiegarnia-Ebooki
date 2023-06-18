@@ -31,6 +31,7 @@ export interface UpdateEbookProps {
   author: UserDTO;
   picture: string;
   prize: number;
+  content?: string;
 }
 
 class EbookService {
@@ -93,12 +94,16 @@ class EbookService {
     return axios.post(`${this.api}/${ebookId}/promote`, promotion)
   }
 
+  verify(ebookId: string){
+    return axios.get(`${process.env.REACT_APP_API}/${ebookId}/verify`);
+  }
+
   deletePromotion(ebookId: string){
     return axios.post(`${this.api}/${ebookId}/promote`, {})
   }
 
   delete(ebookId: string) {
-    return axios.delete(`${this.api}/${ebookId}`);
+    return axios.delete(`${process.env.REACT_APP_API}/${ebookId}`);
   }
 }
 

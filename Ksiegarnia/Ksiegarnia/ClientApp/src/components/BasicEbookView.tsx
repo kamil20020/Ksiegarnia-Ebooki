@@ -69,7 +69,7 @@ const BasicEbookView = (props: {
         </Typography>
       </Grid>
       <Grid item container justifyContent="center">
-        <Rate value={5} />
+        <Rate value={ebook.grade} />
       </Grid>
       {(props.showAddToCart && basketContext?.doShouldShowAddToBasket(ebook)) && (
         <Button
@@ -82,7 +82,7 @@ const BasicEbookView = (props: {
             style={{ color: "white", marginRight: 6 }}
           />
           <Typography variant="h6" display="inline">
-            <EbookPrice price={ebook.prize} promotion={ebook.promotion} />
+            <EbookPrice authorId={ebook.author.id} price={ebook.prize} promotion={ebook.promotion} />
           </Typography>
         </Button>
       )}

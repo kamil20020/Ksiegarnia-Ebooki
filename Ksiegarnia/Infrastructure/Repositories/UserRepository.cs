@@ -234,7 +234,6 @@ namespace Infrastructure.Repositories
                 {
                     var userId = await _userManager.GetUserIdAsync(user);
                     var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                    await _userManager.ConfirmEmailAsync(user, code);
                     await AddRole(user.Id, Roles.User);
                     return new()
                     {
@@ -378,6 +377,7 @@ namespace Infrastructure.Repositories
         public async Task Update(User user)
         {
             await _userManager.UpdateAsync(user);
+            _context.SaveChanges();
         }
 
         private async Task CreateRolesIfNotExists()

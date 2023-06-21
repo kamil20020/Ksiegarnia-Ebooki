@@ -25,6 +25,22 @@ class AdminService {
     return axios.delete(`${this.api}/User/${userId}/${role}`);
   }
 
+  getEbookContent(ebookId: string) {
+    return axios.get(`${this.api}/books/${ebookId}/read`);
+  }
+
+  verify(ebookId: string){
+    return axios.get(`${this.api}/Ebook/${ebookId}/verify`, {
+      params: {
+        verifyName: "Ebook"
+      }
+    });
+  }
+
+  block(ebookId: string){
+    return axios.post(`${this.api}/Ebook/${ebookId}/block`);
+  }
+
   getNotificationById(notificationId: string) {
     return axios.get(`${this.api}/Notification/${notificationId}`);
   }
@@ -37,10 +53,7 @@ class AdminService {
     return axios.post(`${this.api}/Notify`, request);
   }
 
-  changeNotificationStatus(
-    notificationId: string,
-    status: NotificationStatus
-  ) {
+  changeNotificationStatus(notificationId: string, status: NotificationStatus) {
     return axios.post(`${this.api}/Notification/${notificationId}/${status}`);
   }
 }

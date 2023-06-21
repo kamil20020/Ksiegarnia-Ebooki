@@ -60,6 +60,7 @@ namespace Application.Controllers
                 {
                     TransactionType.Token => await BuyViaToken(buyer, tokens ?? new()),
                     TransactionType.Paypal => await BuyViaPaypal(buyer, currency ?? string.Empty),
+                    TransactionType.Wallet => await BuyViaWallet(buyer),
                     _ => await BuyViaToken(buyer, tokens ?? new()),
                 };
             }
@@ -99,8 +100,9 @@ namespace Application.Controllers
                     throw new UserNotFoundException(userId);
                 }
                 
-                var cancel = HttpContext.Request.Host + Url.Action(nameof(FinishDistinct), "Transactions", values: new { id = userId, succeeded = false }, HttpContext.Request.Scheme, HttpContext.Request.Host.Value) ?? string.Empty;
-                var redirect = HttpContext.Request.Host + Url.Action(nameof(FinishDistinct), "Transactions", values: new { id = userId, succeeded = true }, HttpContext.Request.Scheme, HttpContext.Request.Host.Value) ?? string.Empty;
+                var cancel = HttpContext.Request.Host + Url.Action(nameof(FinishDistinct), "Transactions", values: new { id = userId, succeeded = false, no = numberOfDistinction }) ?? string.Empty;
+                var redirect = HttpContext.Request.Host + Url.Action(nameof(FinishDistinct), "Transactions", values: new { id = userId, succeeded = true, no = numberOfDistinction }) ?? string.Empty;
+
 
 
                 var url = _paymentService.GetUri(cancel, redirect, "Zakup wyróżnień", numberOfDistinction * ConfigurationConst.PrizeForDistinct).FirstOrDefault();
@@ -136,6 +138,72 @@ namespace Application.Controllers
 
             return HttpStatusCode.OK;
         }
+
+        private async Task<string> BuyViaWallet(BuyerDto buyer)
+        {
+            var client = await _userRepository.Get(buyer.BuyerId);
+            var readers = new List<EBookReader>();
+
+            var buyed = new List<BookDto>();
+            var sum = Decimal.Zero;
+
+            foreach (var bookId in buyer.BookIds)
+            {
+                var book = await _eBookRepository.Get(Guid.TryParse(bookId, out Guid id) ? id : Guid.Empty);
+
+                if (book == null)
+                {
+                    throw new BookNotFoundException(bookId);
+                }
+
+                if (book.Verification != VerificationType.Accepted)
+                {
+                    throw new BookNotVerifiedException();
+                }
+
+                if (book.Promotion != null && book.Promotion.EndDate > DateTime.Now)
+                {
+                    sum += book.Promotion.Prize;
+                }
+                else
+                {
+                    sum += book.Prize;
+                }
+            }
+
+            sum += sum * ConfigurationConst.Commission;
+
+            if (sum > client.Wallet)
+            {
+                throw new WalletIsNotEnoughException();
+            }
+
+            var transaction = new Transaction()
+            {
+                Currency = Currency.PLN,
+                DateTime = DateTime.UtcNow,
+                Id = Guid.NewGuid(),
+                BuyerId = buyer.BuyerId,
+                EBookReaders = readers
+            };
+
+
+            client.Wallet -= sum;
+
+            await _userRepository.Update(client);
+
+            await _eBookReaderRepository.Add(transaction);
+            await _eBookReaderRepository.SaveChanges();
+
+            var cache = "";
+            foreach (var buy in buyed)
+            {
+                cache += " " + buy.Title;
+            }
+
+            return $"Zakupiono przez portfel:{cache}";
+        }
+
 
         private async Task<string> BuyViaToken(BuyerDto buyer, List<string> tokens)
         {
@@ -251,12 +319,12 @@ namespace Application.Controllers
                     EBookReaders = readers
                 };
 
-                var cancel = Url.Action(nameof(FinishTransaction), "Transactions", values: new { id = transaction.Id, succeeded = false }, HttpContext.Request.Scheme, HttpContext.Request.Host.Value) ?? string.Empty;
-                var redirect = Url.Action(nameof(FinishTransaction), "Transactions", values: new { id = transaction.Id, succeeded = true }, HttpContext.Request.Scheme, HttpContext.Request.Host.Value) ?? string.Empty;
+                var cancel = Url.Action(nameof(FinishTransaction), "Transactions", values: new { id = transaction.Id, succeeded = false }) ?? string.Empty;
+                var redirect = Url.Action(nameof(FinishTransaction), "Transactions", values: new { id = transaction.Id, succeeded = true }) ?? string.Empty;
 
                 var transactionDto = transaction.ToDTO();
 
-                var url = _paymentService.GetUri(cancel, redirect, transactionDto, (decimal)0.1, false).FirstOrDefault();
+                var url = _paymentService.GetUri(cancel, redirect, transactionDto, ConfigurationConst.Commission, false).FirstOrDefault();
 
                 if (!string.IsNullOrEmpty(url))
                 {
@@ -287,25 +355,23 @@ namespace Application.Controllers
             {
                 if (transaction != null)
                 {
-                    var cancel = Url.Action(nameof(FinishSendingCashToUser), "Transactions", values: new { id = id, succeeded = false }, HttpContext.Request.Scheme, HttpContext.Request.Host.Value) ?? string.Empty;
-                    var redirect = Url.Action(nameof(FinishSendingCashToUser), "Transactions", values: new { id = id, succeeded = true }, HttpContext.Request.Scheme, HttpContext.Request.Host.Value) ?? string.Empty;
-
-                    var transactionDto = (await _eBookReaderRepository.GetTransaction(id)).ToDTO();
-
-                    var urls = _paymentService.GetUri(cancel, redirect, transactionDto, (decimal)0.1, true);
-
-                    foreach (var url in urls)
+                    foreach (var book in transaction.EBookReaders.Select(x => x.EBook))
                     {
-                        using (var client = new HttpClient())
+                        if (book.Promotion != null)
                         {
-                            var response = await client.SendAsync(new(HttpMethod.Get, url));
 
-                            if (response.IsSuccessStatusCode)
-                            {
-                                throw new ExceptionBase(HttpStatusCode.BadRequest, "Transaction failed - sending money to author");
-                            }
+                            book.Author.Wallet += book.Promotion.Prize;
+                        }
+                        else
+                        {
+
+                            book.Author.Wallet += book.Prize;
                         }
                     }
+
+                    transaction.Finished = true;
+
+                    await _eBookReaderRepository.SaveChanges();
                 }
                 else
                 {
@@ -326,6 +392,44 @@ namespace Application.Controllers
             return HttpStatusCode.OK;
         }
 
+
+        /// <summary>
+        ///     Send cash
+        /// </summary>
+        /// <param name="id">transaction id</param>
+        /// <param name="succeeded">transaction succeeded</param>
+        /// <returns>Status code</returns>
+        /// <exception cref="BookNotFoundException">When book not found...</exception>
+        /// <exception cref="TransactionNotFoundException">When transaction not found...</exception>
+        /// <exception cref="UserNotFoundException">When user not found...</exception>
+        [HttpPost("")]
+        public async Task<string> SendCash(Guid id, [FromBody] SendCashDto sendCash)
+        {
+            var transaction = new Transaction()
+            {
+                Currency = sendCash.Currency,
+                DateTime = DateTime.UtcNow,
+                Id = Guid.NewGuid(),
+                BuyerId = sendCash.UserId,
+
+            };
+
+            var cancel = Url.Action(nameof(FinishSendingCash), "Transactions", values: new { id = transaction.Id, succeeded = false, cash = sendCash.Cash }) ?? string.Empty;
+            var redirect = Url.Action(nameof(FinishSendingCash), "Transactions", values: new { id = transaction.Id, succeeded = true, cash = sendCash.Cash }) ?? string.Empty;
+
+            var url = _paymentService.GetUri(cancel, redirect, $"Wypłata pieniędzy {sendCash.Cash}", sendCash.Cash, sendCash.UserId).FirstOrDefault();
+
+            if (!string.IsNullOrEmpty(url))
+            {
+                await _eBookReaderRepository.Add(transaction);
+                await _eBookReaderRepository.SaveChanges();
+                return url;
+            }
+
+            throw new ExceptionBase(HttpStatusCode.BadRequest, "Transaction failed");
+        }
+
+
         /// <summary>
         ///     Book buyed - redirect uri (cash to user)
         /// </summary>
@@ -335,23 +439,39 @@ namespace Application.Controllers
         /// <exception cref="BookNotFoundException">When book not found...</exception>
         /// <exception cref="TransactionNotFoundException">When transaction not found...</exception>
         /// <exception cref="UserNotFoundException">When user not found...</exception>
-        [HttpPost("FinishToUser/{id}")]
-        public async Task<HttpStatusCode> FinishSendingCashToUser(Guid id, [FromQuery] bool succeeded = false)
+        [HttpGet("SendCashFinish/{id}")]
+        public async Task<HttpStatusCode> FinishSendingCash(Guid id, [FromBody] decimal cash = 0, [FromQuery] bool succeeded = false)
         {
+            var transaction = await _eBookReaderRepository.GetTransaction(id);
+
             if (succeeded)
             {
-                var reader = await _eBookReaderRepository.GetTransaction(id);
-
-                if (reader != null)
+                if (transaction != null)
                 {
-                    reader.Finished = true;
+                    transaction.Finished = true;
+
+                    var client = await _userRepository.Get(transaction.BuyerId);
+
+                    client.Wallet -= cash;
+
+                    await _userRepository.Update(client);
+
+                    await _eBookReaderRepository.SaveChanges();
+                }
+                else
+                {
+                    throw new ExceptionBase(HttpStatusCode.BadRequest, "Transaction failed");
                 }
 
                 await _eBookReaderRepository.SaveChanges();
             }
             else
             {
-                throw new ExceptionBase(HttpStatusCode.BadRequest, "Send cash to user failed.");
+                if (transaction != null)
+                {
+                    _eBookReaderRepository.Remove(transaction);
+                    await _eBookRepository.SaveChanges();
+                }
             }
 
             return HttpStatusCode.OK;

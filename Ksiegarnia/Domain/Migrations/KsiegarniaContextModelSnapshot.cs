@@ -227,7 +227,12 @@ namespace Domain.Migrations
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Premiums");
                 });
@@ -409,9 +414,6 @@ namespace Domain.Migrations
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
 
-                    b.Property<Guid?>("PremiumId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
@@ -438,8 +440,6 @@ namespace Domain.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
-
-                    b.HasIndex("PremiumId");
 
                     b.ToTable("AspNetUsers", (string)null);
                 });
@@ -612,6 +612,15 @@ namespace Domain.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Domain.Entitites.Premium", b =>
+                {
+                    b.HasOne("Domain.Entitites.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Domain.Entitites.Promotion", b =>
                 {
                     b.HasOne("Domain.Entitites.EBook", "Book")
@@ -648,13 +657,7 @@ namespace Domain.Migrations
                         .WithMany()
                         .HasForeignKey("HideInfoId");
 
-                    b.HasOne("Domain.Entitites.Premium", "Premium")
-                        .WithMany()
-                        .HasForeignKey("PremiumId");
-
                     b.Navigation("HideInfo");
-
-                    b.Navigation("Premium");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

@@ -250,6 +250,7 @@ namespace Application.Controllers
                     _authService.SendEmail($"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl ?? string.Empty)}'>clicking here</a>.", user.Email);
                 }
 
+               // await _userRepository.Confirm(user.Id, user.Token);
             }
             catch (Exception)
             {
@@ -486,7 +487,12 @@ namespace Application.Controllers
         [HttpDelete("{id}")]
         public async Task Delete(string id)
         {
-            await _userRepository.Remove(id);
+            var result = await _userRepository.Remove(id);
+
+            if (!result.Succeeded)
+            {
+                throw new UserNotDeletedException(result.Errors.Select(x => x.Description));
+            }
         }
 
         /// <summary>
@@ -498,7 +504,12 @@ namespace Application.Controllers
         [HttpGet("ConfirmEmail")]
         public async Task EmailConfirm(string id, [FromQuery] string token)
         {
-            await _userRepository.Confirm(id, token);
+            var result = await _userRepository.Confirm(id, token);
+
+            if (!result.Succeeded)
+            {
+                throw new ConfirmEmailFailedException(result.Errors.Select(x => x.Description));
+            }
         }
 
         private async Task<UserDto> HideData(UserDto userData, User user)

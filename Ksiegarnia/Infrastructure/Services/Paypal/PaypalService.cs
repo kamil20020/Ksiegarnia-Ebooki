@@ -1,8 +1,11 @@
 ﻿using Domain.DTOs;
+using Domain.Repositories;
 using Infrastructure.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
 using PayPal.Api;
 using System.Globalization;
+using System.Threading.Tasks;
 
 namespace Infrastructure.Services.Paypal
 {
@@ -12,11 +15,11 @@ namespace Infrastructure.Services.Paypal
     public partial class PaypalService : IPaymentService
     {
 
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IUserRepository _userRepository;
 
-        public PaypalService(IHttpContextAccessor httpContextAccessor)
+        public PaypalService(IUserRepository userRepository)
         {
-            _httpContextAccessor = httpContextAccessor;
+            _userRepository = userRepository;
         }
 
         /// <summary>
@@ -41,8 +44,6 @@ namespace Infrastructure.Services.Paypal
 
                         var links = payment.links.GetEnumerator();
 
-                        _httpContextAccessor.HttpContext.Session.SetString("payment", payment.id);
-
                         while (links.MoveNext())
                         {
                             var link = links.Current;
@@ -55,7 +56,7 @@ namespace Infrastructure.Services.Paypal
                 }
                 else
                 {
-                    payment = CreatePayment(context, redirectUri, cancelUri, transaction, commission);
+                    payment = Task.Run(async() => await CreatePayment(context, redirectUri, cancelUri, transaction, commission)).Result;
 
                     var links = payment.links.GetEnumerator();
 
@@ -82,7 +83,6 @@ namespace Infrastructure.Services.Paypal
 
                 var links = payment.links.GetEnumerator();
 
-                _httpContextAccessor.HttpContext.Session.SetString("payment", payment.id);
 
                 while (links.MoveNext())
                 {
@@ -117,13 +117,13 @@ namespace Infrastructure.Services.Paypal
         /// </summary>
         /// <param name="paymentId"></param>
         /// <returns></returns>
-        public bool Execute(string paymentId)
+        public bool Execute(string paymentId, string payerId)
         {
             var context = GetAPIContext(GetAccessToken());
 
             var paymentExe = new PaymentExecution()
             {
-                payer_id = _httpContextAccessor.HttpContext.Session.GetString("payment")
+                payer_id = payerId,
             };
             var payment = new Payment()
             {
@@ -142,11 +142,16 @@ namespace Infrastructure.Services.Paypal
         /// <param name="transaction">Transaction</param>
         /// <param name="commission">commision where 10 % is 0.1</param>
         /// <returns></returns>
-        public Payment CreatePayment(APIContext apiContext, string redirectUri, string cancelUri, TransactionDto transaction, decimal commission)
+        public async Task<Payment> CreatePayment(APIContext apiContext, string redirectUri, string cancelUri, TransactionDto transaction, decimal commission)
         {
             var payer = new Payer()
             {
-                payment_method = "paypal"
+                payment_method = "paypal",
+                payer_info = new PayerInfo()
+                {
+                    country_code="PL",
+                    email = ConfigurationConst.Paypal.Email
+                }
             };
 
             var itemlist = new ItemList()
@@ -160,7 +165,11 @@ namespace Infrastructure.Services.Paypal
             {
                 var prize = Decimal.Zero;
 
-                if (book.Promotion != null && book.Promotion.EndDate > DateTime.Now)
+                if (book.Promotion != null && book.Promotion.EndDate > DateTime.Now && !book.Promotion.IsPremiumOnly)
+                {
+                    prize = book.Promotion.Prize;
+                }
+                else if (book.Promotion != null && book.Promotion.EndDate > DateTime.Now && book.Promotion.IsPremiumOnly && await _userRepository.CheckRole(transaction.Buyer.Id,Domain.Enums.Roles.PremiumUser))
                 {
                     prize = book.Promotion.Prize;
                 }
@@ -362,8 +371,18 @@ namespace Infrastructure.Services.Paypal
             var payee = new Payee()
             {
                 email = payeeUser
+            };
+
+            var payer = new Payer()
+            {
+                payment_method = "paypal",
+                payer_info = new PayerInfo()
+                {
+                    email = ConfigurationConst.Paypal.Email
+                }
 
             };
+
 
             var itemlist = new ItemList()
             {
@@ -375,7 +394,8 @@ namespace Infrastructure.Services.Paypal
                 name = title,
                 currency = currencyEnum.ToString(),
                 quantity = "1",
-                sku = "asd"
+                sku = "asd",
+                price = cash.ToString()
             });
 
             var urls = new RedirectUrls()
@@ -402,10 +422,13 @@ namespace Infrastructure.Services.Paypal
             var payment = new Payment()
             {
                 payee = payee,
+                payer = payer,
                 redirect_urls = urls,
                 intent = "sale",
                 transactions = transactionPaypal
             };
+
+            var str = payment.ConvertToJson();
 
             return payment.Create(apiContext);
         }

@@ -78,7 +78,8 @@ namespace Application.Controllers
                     {
                         StartDate = premiumData.BuyDate,
                         DaysToFinishPremium = premiumData.Days,
-                        Id = Guid.NewGuid()
+                        Id = Guid.NewGuid(),
+                        User = client
                     },
                     EBookReaders = Enumerable.Empty<EBookReader>(),
                 };
@@ -120,17 +121,17 @@ namespace Application.Controllers
         /// <exception cref="TransactionNotFoundException">When transaction not found...</exception>
         /// <exception cref="UserNotFoundException">When user not found...</exception>
         [HttpPost("Finish/{id}")]
-        public async Task<HttpStatusCode> FinishTransaction(Guid id, [FromQuery] bool succeeded = false)
+        public async Task<IActionResult> FinishTransaction(Guid id, [FromQuery] string? paymentId = "", [FromQuery] string? token = "", [FromQuery] string? PayerID = "", [FromQuery] bool succeeded = false)
         {
-            if (succeeded)
+            var transaction = await _eBookReaderRepository.GetTransaction(id);
+
+            if (transaction != null)
             {
-                var transaction = await _eBookReaderRepository.GetTransaction(id);
+                throw new TransactionNotFoundException();
+            }
 
-                if (transaction == null)
-                {
-                    throw new ExceptionBase(HttpStatusCode.NotFound, "Transaction not found");
-                }
-
+            if (succeeded && _paymentService.Execute(paymentId, PayerID))
+            {
                 var user = await _userRepository.Get(transaction.BuyerId);
 
                 if (user == null)
@@ -138,14 +139,35 @@ namespace Application.Controllers
                     throw new UserNotFoundException(transaction.BuyerId);
                 }
 
-                user.Premium = transaction.Premium;
-
                 await _userRepository.AddRole(user.Id, Roles.PremiumUser);
 
+
                 await _userRepository.Update(user);
+
+                return Redirect(new UriBuilder()
+                {
+                    Scheme = Request.Scheme,
+                    Host = Request.Host.Host,
+                    Port = Request.Host.Port ?? -1,
+                    Path = "TransactionEnd",
+                    Query = "success=true"
+                }.ToString());
+            }
+            else
+            {
+                _eBookReaderRepository.CleanTransaction(transaction);
+
+                await _eBookReaderRepository.SaveChanges();
             }
 
-            return HttpStatusCode.OK;
+            return Redirect(new UriBuilder()
+            {
+                Scheme = Request.Scheme,
+                Host = Request.Host.Host,
+                Port = Request.Host.Port ?? -1,
+                Path = "TransactionEnd",
+                Query = "success=false"
+            }.ToString());
         }
 
         /// <summary>
@@ -166,21 +188,28 @@ namespace Application.Controllers
                 throw new UserNotFoundException(id);
             }
 
-            if (await _userRepository.CheckRole(id, Roles.PremiumUser))
+            var premium = await _userRepository.GetPremium(user.Id);
+
+            if (await _userRepository.CheckRole(id, Roles.PremiumUser) || premium != null)
             {
-                if (user.Premium != null)
+                if (premium != null)
                 {
-                    var isExpired = user.Premium.StartDate.AddDays(user.Premium.DaysToFinishPremium) < DateTime.UtcNow;
+                    var isExpired = premium.StartDate.AddDays(premium.DaysToFinishPremium) < DateTime.UtcNow;
 
                     if (isExpired)
                     {
                         await _userRepository.RemoveRole(user.Id, Roles.PremiumUser);
                     }
+                    else if (!(await _userRepository.CheckRole(id, Roles.PremiumUser)))
+                    {
+                        await _userRepository.AddRole(user.Id, Roles.PremiumUser);
+                        await _userRepository.Update(user);
+                    }
 
                     return new PremiumInfoDto()
                     {
-                        BuyDate = user.Premium.StartDate,
-                        Days = user.Premium.DaysToFinishPremium,
+                        BuyDate = premium.StartDate,
+                        Days = premium.DaysToFinishPremium,
                         IsActive = !isExpired,
                         UserId = user.Id
                     };

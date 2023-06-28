@@ -87,23 +87,23 @@ namespace Application.Controllers
                 var cancel = Url.Action(nameof(FinishTransaction), "Premium", values: new
                 {
                     id = transaction.Id,
-                    succeeded = false
+                    succeeded = false,
                 }, HttpContext.Request.Scheme, HttpContext.Request.Host.Value) ?? string.Empty;
 
                 var redirect = Url.Action(nameof(FinishTransaction), "Premium", values: new
                 {
                     id = transaction.Id,
-                    succeeded = true
+                    succeeded = true,
                 }, HttpContext.Request.Scheme, HttpContext.Request.Host.Value) ?? string.Empty;
 
                 var transactionDto = transaction.ToDTO();
                 var url = _paymentService.GetUri(cancel, redirect, "Kupienie premium", premiumData.Prize).FirstOrDefault();
-
+                
+                await _eBookReaderRepository.Add(transaction);
+                await _eBookReaderRepository.SaveChanges();
+                
                 if (!string.IsNullOrEmpty(url))
                 {
-                    await _eBookReaderRepository.Add(transaction);
-                    await _eBookReaderRepository.SaveChanges();
-
                     return url;
                 }
             }
@@ -120,12 +120,12 @@ namespace Application.Controllers
         /// <exception cref="BookNotFoundException">When book not found...</exception>
         /// <exception cref="TransactionNotFoundException">When transaction not found...</exception>
         /// <exception cref="UserNotFoundException">When user not found...</exception>
-        [HttpPost("Finish/{id}")]
+        [HttpGet("Finish/{id}")]
         public async Task<IActionResult> FinishTransaction(Guid id, [FromQuery] string? paymentId = "", [FromQuery] string? token = "", [FromQuery] string? PayerID = "", [FromQuery] bool succeeded = false)
         {
             var transaction = await _eBookReaderRepository.GetTransaction(id);
 
-            if (transaction != null)
+            if (transaction == null)
             {
                 throw new TransactionNotFoundException();
             }
@@ -142,15 +142,19 @@ namespace Application.Controllers
                 await _userRepository.AddRole(user.Id, Roles.PremiumUser);
 
 
+                transaction.Finished = true;
+
+                await _eBookReaderRepository.SaveChanges();
+
                 await _userRepository.Update(user);
 
                 return Redirect(new UriBuilder()
                 {
                     Scheme = Request.Scheme,
                     Host = Request.Host.Host,
-                    Port = Request.Host.Port ?? -1,
+                    Port = 44489,
                     Path = "TransactionEnd",
-                    Query = "success=true"
+                    Query = "success=true&type=premium"
                 }.ToString());
             }
             else
@@ -164,9 +168,9 @@ namespace Application.Controllers
             {
                 Scheme = Request.Scheme,
                 Host = Request.Host.Host,
-                Port = Request.Host.Port ?? -1,
+                Port = 44489,
                 Path = "TransactionEnd",
-                Query = "success=false"
+                Query = "success=false&type=premium"
             }.ToString());
         }
 

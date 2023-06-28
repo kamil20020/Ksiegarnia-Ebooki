@@ -41,16 +41,17 @@ import Forbidden from "./pages/Forbidden";
 import Logout from "./features/account-settings/Logout";
 import UserManagement from "./features/account-settings/admin/UserManagement";
 import NotificationView from "./features/account-settings/admin/NotificationView";
-import TransactionMessage from "./features/transaction/TransactionMessage";
+import TransactionMessage from "./features/transaction/EbookTransactionMessage";
 import EbooksVerifications from "./features/account-settings/admin/EbooksVerification";
 import EbookVerification from "./features/account-settings/admin/EbookVerification";
-import PremiumTransactionMessage from "./features/transaction/PremiumTransactionMessage";
 import PreferenceProvider, {
   PreferencesContext,
 } from "./context/PreferencesContext";
 import ConfirmedEmailMessage from "./pages/ConfirmedEmailMessage";
-import DistinctTransactionMessage from "./features/transaction/DistinctTransactionMessage";
-import TransactionProvider from "./context/TransactionContext";
+import TransactionProvider, {
+  TransactionContext,
+} from "./context/TransactionContext";
+import TransactionMessageView from "./features/transaction/TransactionMessage";
 
 axios.defaults.withCredentials = true;
 axios.defaults.headers["Content-Type"] = "application/json";
@@ -177,6 +178,7 @@ const ManageTheme = (props: { children: React.ReactNode }) => {
 };
 
 function App() {
+
   return (
     <ContextProviders>
       <ManageTheme>
@@ -283,31 +285,15 @@ function App() {
                 <Route index element={<Basket />} />
               </Route>
               <Route
-                path="Transactions/Finish/:transactionId"
+                path="TransactionEnd"
                 element={
                   <ProtectedRoute requiresLogged={true}>
-                    <TransactionMessage />
+                    <TransactionMessageView/>
                   </ProtectedRoute>
                 }
               />
               <Route
-                path="Transactions/FinishDistinct/:transactionId"
-                element={
-                  <ProtectedRoute requiresLogged={true}>
-                    <DistinctTransactionMessage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="Premium/Finish/:transactionId"
-                element={
-                  <ProtectedRoute requiresLogged={true}>
-                    <PremiumTransactionMessage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="Users/ConfirmEmail"
+                path="EmailConfirmed"
                 element={
                   <ProtectedRoute requiresLogged={false}>
                     <ConfirmedEmailMessage />

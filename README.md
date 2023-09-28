@@ -145,3 +145,5 @@ Aplikacja została zrealizowana w architekturze monolitycznej. Aplikacja klienck
 </p>
 
 ## Zrzuty ekranu:
+
+## Instrukcje użytkownika:

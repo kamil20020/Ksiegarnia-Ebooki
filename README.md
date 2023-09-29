@@ -103,45 +103,45 @@ Aplikacja została zrealizowana w architekturze monolitycznej. Aplikacja klienck
 
 ## Schemat bazy danych:
 <p align="center">
-    <img src="img/zrzuty-ekranu/erd-1.png">
+    <img src="img/erd-1.png">
 </p>
 
 <p align="center">
-    <img src="img/zrzuty-ekranu/erd-2.png">
+    <img src="img/erd-2.png">
 </p>
 
 ## Tabele bazy danych:
 <p align="center">
-    <img src="img/zrzuty-ekranu/erd-tabela-1.png">
+    <img src="img/erd-tabela-1.png">
 </p>
 
 <p align="center">
-    <img src="img/zrzuty-ekranu/erd-tabela-2.png">
+    <img src="img/erd-tabela-2.png">
 </p>
 
 <p align="center">
-    <img src="img/zrzuty-ekranu/erd-tabela-3.png">
+    <img src="img/erd-tabela-3.png">
 </p>
 
 ## Specyfikacja API:
 <p align="center">
-    <img src="img/zrzuty-ekranu/api-1.png">
+    <img src="img/api-1.png">
 </p>
 
 <p align="center">
-    <img src="img/zrzuty-ekranu/api-2.png">
+    <img src="img/api-2.png">
 </p>
 
 <p align="center">
-    <img src="img/zrzuty-ekranu/api-3.png">
+    <img src="img/api-3.png">
 </p>
 
 <p align="center">
-    <img src="img/zrzuty-ekranu/api-4.png">
+    <img src="img/api-4.png">
 </p>
 
 <p align="center">
-    <img src="img/zrzuty-ekranu/api-5.png">
+    <img src="img/api-5.png">
 </p>
 
 ## Zrzuty ekranu:

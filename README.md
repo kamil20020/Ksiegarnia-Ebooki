@@ -418,12 +418,12 @@ Aplikacja została zrealizowana w architekturze monolitycznej. Aplikacja klienck
 ### Weryfikacja ebooków (Recenzent)
 #### Lista ebooków do zweryfikowania:
 <p align="center">
-    <img src="img/zrzuty-ekranu/weryfikacja.png">
+    <img src="img/zrzuty-ekranu/weryfikacje.png">
 </p>
 
 #### Formularz weryfikacji ebooka:
 <p align="center">
-    <img src="img/zrzuty-ekranu/weryfikacja ebooka.png">
+    <img src="img/zrzuty-ekranu/weryfikacja-ebooka.png">
 </p>
 
 ### Zarządzanie użytkownikami (Administrator):

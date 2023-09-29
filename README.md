@@ -166,12 +166,12 @@ Aplikacja została zrealizowana w architekturze monolitycznej. Aplikacja klienck
 
 #### Regulamin:
 <p align="center">
-    <img src="img/zrzuty-ekranu/strona-glowna-1.png">
+    <img src="img/zrzuty-ekranu/rejestracja-regulamin.png">
 </p>
 
 ### Logowanie:
 <p align="center">
-    <img src="img/zrzuty-ekranu/strona-glowna-1.png">
+    <img src="img/zrzuty-ekranu/logowanie.png">
 </p>
 
 ### Resetowanie hasła

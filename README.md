@@ -1,6 +1,6 @@
 # Księgarnia ebooków (Ebookworld) (06.2023)
 Aplikacja została zrealizowana w ramach zajęć projektowych z Zastosowań informatyki w gospodarce na Politechnice Wrocławskiej. Aplikacja Ebookworld ma umożliwić nowym, świeżym autorom osiągnąć sukces na rynku, uzyskać pierwszych czytelników czy recenzje dla swoich książek. Dzięki tej platformie każda pełnoletnia osoba może stać się pisarzem i podzielić się swoją twórczością z innymi. Niezależnie od tego, czy jest ona doświadczonym
-autorem, pasjonatem literatury czy początkującym pisarzem, może opublikować swoje dzieło na naszej stronie i udostępnić je czytelnikom.
+autorem, pasjonatem literatury czy początkującym pisarzem, może opublikować swoje dzieło na naszej stronie i udostępnić je czytelnikom. 
 
 ## Struktura projektu:
 * Lokalizacja ./Ksiegarnia/Ksiegarnia/ClientApp - kod frontendu,
